@@ -22,32 +22,43 @@ async function createTab() {
 
 function newConnection(socket: WebSocket) {
 	const tab = createTab();
+	const lastKnownContent = '';
 
 	// Listen for incoming messages on the WebSocket
 	// Don't `await` anything before this or else it might come too late
 	socket.on('message', async rawMessage => {
-		const {document} = await tab;
-		const message = JSON.parse(String(rawMessage)) as {text: string};
+		const {document, editor} = await tab;
+		const {text, selections} = JSON.parse(String(rawMessage)) as {text: string; selections: Array<{start: number; end: number}>};
 
 		// When a message is received, replace the document content with the message
 		const edit = new vscode.WorkspaceEdit();
 		edit.replace(
 			document.uri,
 			new vscode.Range(0, 0, document.lineCount, 0),
-			message.text,
+			text,
 		);
 		await vscode.workspace.applyEdit(edit);
+
+		editor.selections = selections.map(selection => new vscode.Selection(
+			document.positionAt(selection.start),
+			document.positionAt(selection.end),
+		));
 	});
 
 	// Listen for editor changes
 	const typeListener = vscode.workspace.onDidChangeTextDocument(
 		async event => {
-			const {document} = await tab;
+			const {document, editor} = await tab;
 
 			if (event.document === document) {
 				// When the editor content changes, send the new content back to the client
-				const content = event.document.getText();
-				socket.send(JSON.stringify({text: content, selections: []}));
+				const content = document.getText();
+
+				const selections = editor.selections.map(selection => ({
+					start: document.offsetAt(selection.start),
+					end: document.offsetAt(selection.end),
+				}));
+				socket.send(JSON.stringify({text: content, selections}));
 			}
 		},
 	);
@@ -57,13 +68,27 @@ function newConnection(socket: WebSocket) {
 			const {document} = await tab;
 
 			if (doc === document && doc.isClosed) {
-				console.log('document close');
 				socket.close();
 			}
 		},
 	);
 
-	context.subscriptions.push(typeListener, tabCloseListener);
+	const selectionChangeListener
+	= vscode.window.onDidChangeTextEditorSelection(async event => {
+		const {document} = await tab;
+
+		if (event.textEditor.document === document) {
+			const content = document.getText();
+
+			const selections = event.selections.map(selection => ({
+				start: document.offsetAt(selection.start),
+				end: document.offsetAt(selection.end),
+			}));
+			socket.send(JSON.stringify({text: content, selections}));
+		}
+	});
+
+	context.subscriptions.push(typeListener, tabCloseListener, selectionChangeListener);
 }
 
 function createServer() {
