@@ -26,9 +26,12 @@ function newConnection(socket: WebSocket) {
 
 	// Listen for incoming messages on the WebSocket
 	// Don't `await` anything before this or else it might come too late
-	socket.on('message', async rawMessage => {
+	socket.on('message', async (rawMessage) => {
 		const {document, editor} = await tab;
-		const {text, selections} = JSON.parse(String(rawMessage)) as {text: string; selections: Array<{start: number; end: number}>};
+		const {text, selections} = JSON.parse(String(rawMessage)) as {
+			text: string;
+			selections: Array<{start: number; end: number}>;
+		};
 
 		// When a message is received, replace the document content with the message
 		const edit = new vscode.WorkspaceEdit();
@@ -39,22 +42,25 @@ function newConnection(socket: WebSocket) {
 		);
 		await vscode.workspace.applyEdit(edit);
 
-		editor.selections = selections.map(selection => new vscode.Selection(
-			document.positionAt(selection.start),
-			document.positionAt(selection.end),
-		));
+		editor.selections = selections.map(
+			(selection) =>
+				new vscode.Selection(
+					document.positionAt(selection.start),
+					document.positionAt(selection.end),
+				),
+		);
 	});
 
 	// Listen for editor changes
 	const typeListener = vscode.workspace.onDidChangeTextDocument(
-		async event => {
+		async (event) => {
 			const {document, editor} = await tab;
 
 			if (event.document === document) {
 				// When the editor content changes, send the new content back to the client
 				const content = document.getText();
 
-				const selections = editor.selections.map(selection => ({
+				const selections = editor.selections.map((selection) => ({
 					start: document.offsetAt(selection.start),
 					end: document.offsetAt(selection.end),
 				}));
@@ -64,7 +70,7 @@ function newConnection(socket: WebSocket) {
 	);
 
 	const tabCloseListener = vscode.workspace.onDidCloseTextDocument(
-		async doc => {
+		async (doc) => {
 			const {document} = await tab;
 
 			if (doc === document && doc.isClosed) {
@@ -73,28 +79,33 @@ function newConnection(socket: WebSocket) {
 		},
 	);
 
-	const selectionChangeListener
-	= vscode.window.onDidChangeTextEditorSelection(async event => {
-		const {document} = await tab;
+	const selectionChangeListener = vscode.window.onDidChangeTextEditorSelection(
+		async (event) => {
+			const {document} = await tab;
 
-		if (event.textEditor.document === document) {
-			const content = document.getText();
+			if (event.textEditor.document === document) {
+				const content = document.getText();
 
-			const selections = event.selections.map(selection => ({
-				start: document.offsetAt(selection.start),
-				end: document.offsetAt(selection.end),
-			}));
-			socket.send(JSON.stringify({text: content, selections}));
-		}
-	});
+				const selections = event.selections.map((selection) => ({
+					start: document.offsetAt(selection.start),
+					end: document.offsetAt(selection.end),
+				}));
+				socket.send(JSON.stringify({text: content, selections}));
+			}
+		},
+	);
 
-	context.subscriptions.push(typeListener, tabCloseListener, selectionChangeListener);
+	context.subscriptions.push(
+		typeListener,
+		tabCloseListener,
+		selectionChangeListener,
+	);
 }
 
 function createServer() {
 	server?.close();
-	const httpPort
-    = vscode.workspace.getConfiguration('myExtension').get('httpPort') ?? 4001;
+	const httpPort =
+		vscode.workspace.getConfiguration('myExtension').get('httpPort') ?? 4001;
 
 	server = http
 		.createServer(async (request, response) => {
@@ -126,7 +137,7 @@ export function activate(_context: vscode.ExtensionContext) {
 
 	// Watch for changes to the HTTP port option
 	context.subscriptions.push(
-		vscode.workspace.onDidChangeConfiguration(event => {
+		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (event.affectsConfiguration('myExtension.httpPort')) {
 				createServer();
 			}
