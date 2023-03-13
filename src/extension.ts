@@ -9,20 +9,18 @@ let context: vscode.ExtensionContext;
 let server: http.Server;
 
 async function createTab() {
-	// Create a new tab named "ghosttext.md" in the workspace
 	const document = await vscode.workspace.openTextDocument({
 		language: 'markdown',
 		content: 'Loading…',
 	});
 	const editor = await vscode.window.showTextDocument(document, {
-		viewColumn: vscode.ViewColumn.One,
+		viewColumn: vscode.ViewColumn.Active,
 	});
 	return {document, editor};
 }
 
-function newConnection(socket: WebSocket) {
+function startGT(socket: WebSocket) {
 	const tab = createTab();
-	const lastKnownContent = '';
 
 	// Listen for incoming messages on the WebSocket
 	// Don't `await` anything before this or else it might come too late
@@ -52,7 +50,7 @@ function newConnection(socket: WebSocket) {
 	});
 
 	// Listen for editor changes
-	const typeListener = vscode.workspace.onDidChangeTextDocument(
+	vscode.workspace.onDidChangeTextDocument(
 		async (event) => {
 			const {document, editor} = await tab;
 
@@ -67,68 +65,75 @@ function newConnection(socket: WebSocket) {
 				socket.send(JSON.stringify({text: content, selections}));
 			}
 		},
+		null,
+		context.subscriptions,
 	);
 
 	const tabCloseListener = vscode.workspace.onDidCloseTextDocument(
-		async (doc) => {
+		async (closedDocument) => {
 			const {document} = await tab;
 
-			if (doc === document && doc.isClosed) {
+			if (closedDocument === document) {
 				socket.close();
 			}
 		},
 	);
 
-	const selectionChangeListener = vscode.window.onDidChangeTextEditorSelection(
+	vscode.window.onDidChangeTextEditorSelection(
 		async (event) => {
 			const {document} = await tab;
 
-			if (event.textEditor.document === document) {
-				const content = document.getText();
-
-				const selections = event.selections.map((selection) => ({
-					start: document.offsetAt(selection.start),
-					end: document.offsetAt(selection.end),
-				}));
-				socket.send(JSON.stringify({text: content, selections}));
+			if (event.textEditor.document !== document) {
+				return;
 			}
-		},
-	);
 
-	context.subscriptions.push(
-		typeListener,
-		tabCloseListener,
-		selectionChangeListener,
+			const content = document.getText();
+
+			const selections = event.selections.map((selection) => ({
+				start: document.offsetAt(selection.start),
+				end: document.offsetAt(selection.end),
+			}));
+			socket.send(JSON.stringify({text: content, selections}));
+		},
+		null,
+		context.subscriptions,
 	);
 }
 
 function createServer() {
 	server?.close();
-	const httpPort =
-		vscode.workspace.getConfiguration('myExtension').get('httpPort') ?? 4001;
+	const serverPort =
+		vscode.workspace.getConfiguration('ghosttext').get('serverPort') ?? 4001;
+	server = http.createServer(requestListener).listen(serverPort);
+	context.subscriptions.push({
+		dispose() {
+			server.close();
+		},
+	});
 
-	server = http
-		.createServer(async (request, response) => {
-			response.writeHead(200, {
-				'Content-Type': 'application/json',
-			});
-			const port = await getPort();
-			response.end(
-				JSON.stringify({
-					ProtocolVersion: 1,
-					WebSocketPort: port,
-				}),
-			);
+	async function requestListener(
+		request: unknown,
+		response: http.ServerResponse,
+	) {
+		response.writeHead(200, {
+			'Content-Type': 'application/json',
+		});
+		const port = await getPort();
+		response.end(
+			JSON.stringify({
+				ProtocolVersion: 1,
+				WebSocketPort: port,
+			}),
+		);
 
-			const server = new Server({port});
-			server.on('connection', newConnection);
-			context.subscriptions.push({
-				dispose() {
-					server.close();
-				},
-			});
-		})
-		.listen(httpPort);
+		const ws = new Server({port});
+		ws.on('connection', startGT);
+		context.subscriptions.push({
+			dispose() {
+				ws.close();
+			},
+		});
+	}
 }
 
 export function activate(_context: vscode.ExtensionContext) {
@@ -136,11 +141,14 @@ export function activate(_context: vscode.ExtensionContext) {
 	createServer();
 
 	// Watch for changes to the HTTP port option
-	context.subscriptions.push(
-		vscode.workspace.onDidChangeConfiguration((event) => {
-			if (event.affectsConfiguration('myExtension.httpPort')) {
+	// This event is already debounced
+	vscode.workspace.onDidChangeConfiguration(
+		(event) => {
+			if (event.affectsConfiguration('ghosttext.serverPort')) {
 				createServer();
 			}
-		}),
+		},
+		null,
+		context.subscriptions,
 	);
 }
