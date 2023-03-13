@@ -1,12 +1,26 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
 import * as http from 'node:http';
+import util from 'node:util';
+import {execFile} from 'node:child_process';
+import process from 'node:process';
 import getPort from 'get-port';
 import * as vscode from 'vscode';
 import {type WebSocket, Server} from 'ws';
 
+const exec = util.promisify(execFile);
 let context: vscode.ExtensionContext;
 let server: http.Server;
+
+const osxFocus = `
+	tell application "Visual Studio Code"
+		activate
+	end tell`;
+function bringEditorToFront() {
+	if (process.platform === 'darwin') {
+		void exec('osascript', ['-e', osxFocus]);
+	}
+}
 
 async function createTab() {
 	const document = await vscode.workspace.openTextDocument({
@@ -16,6 +30,7 @@ async function createTab() {
 	const editor = await vscode.window.showTextDocument(document, {
 		viewColumn: vscode.ViewColumn.Active,
 	});
+	bringEditorToFront();
 	return {document, editor};
 }
 
