@@ -2,6 +2,7 @@
   "name": "ghosttext",
   "displayName": "GhostText",
   "description": "Write in the browser with VSCode",
+  "publisher": "fregante",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.76.0"
@@ -45,7 +46,7 @@
     "xo": "^0.53.1"
   },
   "dependencies": {
-    "get-port": "^6.1.2",
+    "get-port": "^5.1.1",
     "ws": "^8.13.0"
   }
 }
