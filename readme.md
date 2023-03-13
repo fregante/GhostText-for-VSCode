@@ -1,4 +1,4 @@
-Not yet ready
+Soft-launch, not completely tested. Please report any bugs.
 
 # ![GhostText for VS Code](https://raw.githubusercontent.com/fregante/GhostText/main/promo/gt_banner-for-vscode.png)
 Use Sublime Text to write in your browser. Everything you type in the editor will be instantly updated in the browser (and vice versa).

@@ -1,11 +1,14 @@
 {
-  "name": "ghosttext",
-  "displayName": "GhostText",
-  "version": "0.0.0",
+  "name": "ghost-text",
+  "displayName": "GhostText Official",
+  "version": "1.0.1",
   "description": "Write in the browser with VSCode",
   "categories": [
     "Other"
   ],
+  "homepage": "https://ghosttext.fregante.com",
+  "bugs": "https://github.com/fregante/GhostText/issues",
+  "repository": "fregante/GhostText-for-VSCode",
   "publisher": "fregante",
   "main": "./distribution/extension.js",
   "scripts": {
@@ -48,5 +51,9 @@
   },
   "engines": {
     "vscode": "^1.76.0"
+  },
+  "icon": "icon.png",
+  "sponsor": {
+    "url": "https://github.com/sponsors/fregante"
   }
 }
