@@ -1,21 +1,18 @@
 {
   "name": "ghosttext",
   "displayName": "GhostText",
-  "description": "Write in the browser with VSCode",
-  "publisher": "fregante",
   "version": "0.0.0",
-  "engines": {
-    "vscode": "^1.76.0"
-  },
+  "description": "Write in the browser with VSCode",
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onStartupFinished"
-  ],
-  "main": "./out/extension.js",
-  "xo": {
-    "prettier": true
+  "publisher": "fregante",
+  "main": "./distribution/extension.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "xo",
+    "vscode:prepublish": "npm run build",
+    "watch": "tsc --watch"
   },
   "contributes": {
     "configuration": {
@@ -30,13 +27,18 @@
       }
     }
   },
-  "scripts": {
-    "vscode:prepublish": "npm run build",
-    "build": "tsc",
-    "watch": "tsc --watch",
-    "test": "xo"
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "xo": {
+    "prettier": true
+  },
+  "dependencies": {
+    "get-port": "^5.1.1",
+    "ws": "^8.13.0"
   },
   "devDependencies": {
+    "@sindresorhus/tsconfig": "^3.0.1",
     "@types/vscode": "^1.76.0",
     "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^5.53.0",
@@ -44,8 +46,7 @@
     "typescript": "^4.9.5",
     "xo": "^0.53.1"
   },
-  "dependencies": {
-    "get-port": "^5.1.1",
-    "ws": "^8.13.0"
+  "engines": {
+    "vscode": "^1.76.0"
   }
 }

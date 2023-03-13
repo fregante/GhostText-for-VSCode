@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
 import * as http from 'node:http';
-import util from 'node:util';
+import {promisify} from 'node:util';
 import {execFile} from 'node:child_process';
 import process from 'node:process';
 import getPort from 'get-port';
 import * as vscode from 'vscode';
 import {type WebSocket, Server} from 'ws';
 
-const exec = util.promisify(execFile);
+const exec = promisify(execFile);
 let context: vscode.ExtensionContext;
 let server: http.Server;
 
@@ -84,7 +84,7 @@ function startGT(socket: WebSocket) {
 		context.subscriptions,
 	);
 
-	const tabCloseListener = vscode.workspace.onDidCloseTextDocument(
+	vscode.workspace.onDidCloseTextDocument(
 		async (closedDocument) => {
 			const {document} = await tab;
 
@@ -92,6 +92,8 @@ function startGT(socket: WebSocket) {
 				socket.close();
 			}
 		},
+		null,
+		context.subscriptions,
 	);
 
 	vscode.window.onDidChangeTextEditorSelection(
@@ -127,7 +129,7 @@ function createServer() {
 	});
 
 	async function requestListener(
-		request: unknown,
+		_request: unknown,
 		response: http.ServerResponse,
 	) {
 		response.writeHead(200, {

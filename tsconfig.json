@@ -1,15 +1,9 @@
 {
+	"extends": "@sindresorhus/tsconfig",
 	"compilerOptions": {
 		"module": "CommonJS",
-		"target": "ES2020",
-		"moduleResolution": "node",
-		"esModuleInterop": true,
-		"outDir": "out",
-		"lib": [
-			"ES2020"
-		],
-		"sourceMap": true,
-		"rootDir": "src",
-		"strict": true
-	}
+		"rootDir": "source",
+		"outDir": "distribution",
+		"esModuleInterop": true
+	},
 }
