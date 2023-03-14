@@ -4,13 +4,13 @@ import * as http from 'node:http';
 import {promisify} from 'node:util';
 import {execFile} from 'node:child_process';
 import process from 'node:process';
-import getPort from 'get-port';
 import * as vscode from 'vscode';
 import {type WebSocket, Server} from 'ws';
 
 const exec = promisify(execFile);
 let context: vscode.ExtensionContext;
 let server: http.Server;
+let ws: Server;
 
 const osxFocus = `
 	tell application "Visual Studio Code"
@@ -130,6 +130,9 @@ function createServer() {
 	const serverPort =
 		vscode.workspace.getConfiguration('ghosttext').get('serverPort') ?? 4001;
 	server = http.createServer(requestListener).listen(serverPort);
+	ws = new Server({server});
+	ws.on('connection', startGT);
+
 	context.subscriptions.push({
 		dispose() {
 			server.close();
@@ -143,16 +146,13 @@ function createServer() {
 		response.writeHead(200, {
 			'Content-Type': 'application/json',
 		});
-		const port = await getPort();
 		response.end(
 			JSON.stringify({
 				ProtocolVersion: 1,
-				WebSocketPort: port,
+				WebSocketPort: serverPort,
 			}),
 		);
 
-		const ws = new Server({port});
-		ws.on('connection', startGT);
 		context.subscriptions.push({
 			dispose() {
 				ws.close();
