@@ -25,7 +25,6 @@ function bringEditorToFront() {
 async function createTab() {
 	const document = await vscode.workspace.openTextDocument({
 		language: 'markdown',
-		content: 'Loading…',
 	});
 	const editor = await vscode.window.showTextDocument(document, {
 		viewColumn: vscode.ViewColumn.Active,
@@ -36,6 +35,8 @@ async function createTab() {
 
 function startGT(socket: WebSocket) {
 	const tab = createTab();
+	/** When the browser sends new content, the editor should not detect this "change" event and echo it */
+	let updateFromBrowserInProgress = false;
 
 	// Listen for incoming messages on the WebSocket
 	// Don't `await` anything before this or else it might come too late
@@ -53,7 +54,10 @@ function startGT(socket: WebSocket) {
 			new vscode.Range(0, 0, document.lineCount, 0),
 			text,
 		);
+
+		updateFromBrowserInProgress = true;
 		await vscode.workspace.applyEdit(edit);
+		updateFromBrowserInProgress = false;
 
 		editor.selections = selections.map(
 			(selection) =>
@@ -67,6 +71,10 @@ function startGT(socket: WebSocket) {
 	// Listen for editor changes
 	vscode.workspace.onDidChangeTextDocument(
 		async (event) => {
+			if (updateFromBrowserInProgress || event.contentChanges.length === 0) {
+				return;
+			}
+
 			const {document, editor} = await tab;
 
 			if (event.document === document) {
