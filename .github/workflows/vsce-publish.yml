@@ -1,0 +1,26 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      Version:
+        description: 'Version accepted by `npm version *`'
+        required: true
+
+jobs:
+  Marketplace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: npm ci
+      - uses: fregante/setup-git-user@v2
+      - run: npm version "${{ github.event.inputs.Version }}"
+      - run: npx @vscode/vsce@2 publish
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      - run: gh release create "${{ github.event.inputs.Version }}" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
