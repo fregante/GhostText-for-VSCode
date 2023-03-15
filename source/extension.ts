@@ -6,6 +6,7 @@ import {execFile} from 'node:child_process';
 import process from 'node:process';
 import * as vscode from 'vscode';
 import {type WebSocket, Server} from 'ws';
+import filenamify from 'filenamify';
 
 const exec = promisify(execFile);
 let context: vscode.ExtensionContext;
@@ -22,30 +23,44 @@ function bringEditorToFront() {
 	}
 }
 
-async function createTab() {
-	const document = await vscode.workspace.openTextDocument({
-		language: 'markdown',
-	});
+type Tab = {document: vscode.TextDocument; editor: vscode.TextEditor};
+
+async function createTab(title: string) {
+	const t = new Date();
+	// This string is visible if multiple tabs are open from the same page
+	const avoidsOverlappingFiles = `${t.getHours()}-${t.getMinutes()}-${t.getSeconds()}`;
+	const file = vscode.Uri.parse(
+		`untitled:${avoidsOverlappingFiles}/${filenamify(title.trim())}.md`,
+	);
+	const document = await vscode.workspace.openTextDocument(file);
 	const editor = await vscode.window.showTextDocument(document, {
 		viewColumn: vscode.ViewColumn.Active,
+		preview: false,
 	});
 	bringEditorToFront();
 	return {document, editor};
 }
 
 function startGT(socket: WebSocket) {
-	const tab = createTab();
+	let tab: Promise<Tab>;
 	/** When the browser sends new content, the editor should not detect this "change" event and echo it */
 	let updateFromBrowserInProgress = false;
+
+	// Socket.on('close', async () => {
+	// 	const {document} = await tab;
+	// });
 
 	// Listen for incoming messages on the WebSocket
 	// Don't `await` anything before this or else it might come too late
 	socket.on('message', async (rawMessage) => {
-		const {document, editor} = await tab;
-		const {text, selections} = JSON.parse(String(rawMessage)) as {
+		const {text, selections, title} = JSON.parse(String(rawMessage)) as {
 			text: string;
+			title: string;
 			selections: Array<{start: number; end: number}>;
 		};
+
+		tab ??= createTab(title);
+		const {document, editor} = await tab;
 
 		// When a message is received, replace the document content with the message
 		const edit = new vscode.WorkspaceEdit();
@@ -68,7 +83,6 @@ function startGT(socket: WebSocket) {
 		);
 	});
 
-	// Listen for editor changes
 	vscode.workspace.onDidChangeTextDocument(
 		async (event) => {
 			if (updateFromBrowserInProgress || event.contentChanges.length === 0) {

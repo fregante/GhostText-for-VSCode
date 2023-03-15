@@ -4,6 +4,8 @@
 		"module": "CommonJS",
 		"rootDir": "source",
 		"outDir": "distribution",
-		"esModuleInterop": true
+		"sourceMap": true,
+		"esModuleInterop": true,
+		"noEmitOnError": false
 	},
 }

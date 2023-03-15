@@ -13,7 +13,7 @@
   "main": "./distribution/extension.js",
   "scripts": {
     "build": "tsc",
-    "test": "xo",
+    "test": "tsc && xo",
     "vscode:prepublish": "npm run build",
     "watch": "tsc --watch"
   },
@@ -37,6 +37,7 @@
     "prettier": true
   },
   "dependencies": {
+    "filenamify": "^4.3.0",
     "ws": "^8.13.0"
   },
   "devDependencies": {
