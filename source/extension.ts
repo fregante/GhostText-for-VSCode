@@ -2,6 +2,9 @@
 
 import * as http from 'node:http';
 import {promisify} from 'node:util';
+import {join} from 'node:path';
+import {mkdtemp} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {execFile} from 'node:child_process';
 import process from 'node:process';
 import * as vscode from 'vscode';
@@ -29,8 +32,10 @@ async function createTab(title: string) {
 	const t = new Date();
 	// This string is visible if multiple tabs are open from the same page
 	const avoidsOverlappingFiles = `${t.getHours()}-${t.getMinutes()}-${t.getSeconds()}`;
+	const directory = await mkdtemp(join(tmpdir(), 'ghosttext-'));
+	const name = filenamify(title).trim();
 	const file = vscode.Uri.parse(
-		`untitled:${avoidsOverlappingFiles}/${filenamify(title.trim())}.md`,
+		`untitled:${directory}/${avoidsOverlappingFiles}/${name}.md`,
 	);
 	const document = await vscode.workspace.openTextDocument(file);
 	const editor = await vscode.window.showTextDocument(document, {
