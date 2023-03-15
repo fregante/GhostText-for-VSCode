@@ -96,7 +96,8 @@ function startGT(socket: WebSocket) {
 		async (closedDocument) => {
 			const {document} = await tab;
 
-			if (closedDocument === document) {
+			// https://github.com/fregante/GhostText-for-VSCode/issues/2
+			if (closedDocument === document && closedDocument.isClosed) {
 				socket.close();
 			}
 		},
