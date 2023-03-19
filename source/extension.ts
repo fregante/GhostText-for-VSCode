@@ -7,6 +7,7 @@ import process from 'node:process';
 import * as vscode from 'vscode';
 import {type WebSocket, Server} from 'ws';
 import filenamify from 'filenamify';
+import * as codelens from './codelens.js';
 
 const exec = promisify(execFile);
 let context: vscode.ExtensionContext;
@@ -37,7 +38,9 @@ async function createTab(title: string) {
 		viewColumn: vscode.ViewColumn.Active,
 		preview: false,
 	});
+
 	bringEditorToFront();
+	codelens.add(document);
 	return {document, editor};
 }
 
@@ -179,6 +182,7 @@ function createServer() {
 export function activate(_context: vscode.ExtensionContext) {
 	context = _context;
 	createServer();
+	codelens.activate(_context);
 
 	// Watch for changes to the HTTP port option
 	// This event is already debounced
