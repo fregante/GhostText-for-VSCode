@@ -2,7 +2,9 @@
 
 import * as http from 'node:http';
 import {promisify} from 'node:util';
+import {join, sep} from 'node:path';
 import {tmpdir} from 'node:os';
+import {mkdtemp, mkdir} from 'node:fs/promises';
 import {execFile} from 'node:child_process';
 import process from 'node:process';
 import * as vscode from 'vscode';
@@ -30,18 +32,21 @@ function bringEditorToFront() {
 
 type Tab = {document: vscode.TextDocument; editor: vscode.TextEditor};
 
+const workspace = join(tmpdir(), 'GhostText');
+
 async function initView(title: string, socket: WebSocket) {
-	const t = new Date();
-	// This string is visible if multiple tabs are open from the same page
-	const avoidsOverlappingFiles = `${t.getHours()}-${t.getMinutes()}-${t.getSeconds()}`;
-	const filename = `${filenamify(title.trim())}.md`;
+	await mkdir(workspace, {recursive: true});
 	const file = vscode.Uri.from({
 		scheme: 'untitled',
-		path: `${tmpdir()}/${avoidsOverlappingFiles}/${filename}`,
+		path: join(await mkdtemp(workspace + sep), `${filenamify(title.trim())}.md`),
 	});
+	await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.parse(workspace), {
+		forceNewWindow: true,
+	});
+	// TODO: actually use window (the next line uses the previous workspace anyway…)
+	// TODO: reuse new window
 	const document = await vscode.workspace.openTextDocument(file);
 	const editor = await vscode.window.showTextDocument(document, {
-		viewColumn: vscode.ViewColumn.Active,
 		preview: false,
 	});
 
