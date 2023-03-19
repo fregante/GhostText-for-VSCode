@@ -197,7 +197,6 @@ function disconnectCommand(
 		| string
 		| undefined = vscode.window.activeTextEditor?.document.uri.toString(),
 ) {
-	console.log('Will disconnect', {uriString});
 	if (uriString) {
 		documents.delete(uriString);
 	}

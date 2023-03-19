@@ -15,8 +15,7 @@ class GhostTextCodeLensProvider implements vscode.CodeLensProvider {
 			return [];
 		}
 
-		const firstLine = document.lineAt(0);
-		const range = new vscode.Range(0, 0, firstLine.range.start.line, 0);
+		const range = new vscode.Range(0, 0, 0, 0);
 		const command: vscode.Command = {
 			title: '👻 🌕 GhostText connected | Disconnect',
 			command: 'ghostText.disconnect',
@@ -29,7 +28,7 @@ class GhostTextCodeLensProvider implements vscode.CodeLensProvider {
 export function activate(context: vscode.ExtensionContext): void {
 	const codeLensProvider = new GhostTextCodeLensProvider();
 	const codeLensDisposable = vscode.languages.registerCodeLensProvider(
-		{scheme: 'untitled'},
+		{pattern: '**/*'},
 		codeLensProvider,
 	);
 	context.subscriptions.push(codeLensDisposable);
