@@ -2,6 +2,7 @@
 
 import * as http from 'node:http';
 import {promisify} from 'node:util';
+import {tmpdir} from 'node:os';
 import {execFile} from 'node:child_process';
 import process from 'node:process';
 import * as vscode from 'vscode';
@@ -34,9 +35,11 @@ async function createTab(title: string, socket: WebSocket) {
 	const t = new Date();
 	// This string is visible if multiple tabs are open from the same page
 	const avoidsOverlappingFiles = `${t.getHours()}-${t.getMinutes()}-${t.getSeconds()}`;
-	const file = vscode.Uri.parse(
-		`untitled:${avoidsOverlappingFiles}/${filenamify(title.trim())}.md`,
-	);
+	const filename = `${filenamify(title.trim())}.md`;
+	const file = vscode.Uri.from({
+		scheme: 'untitled',
+		path: `${tmpdir()}/${avoidsOverlappingFiles}/${filename}`,
+	});
 	const document = await vscode.workspace.openTextDocument(file);
 	const editor = await vscode.window.showTextDocument(document, {
 		viewColumn: vscode.ViewColumn.Active,
@@ -101,11 +104,29 @@ function startGT(socket: WebSocket) {
 	});
 }
 
+function getPort() {
+	return vscode.workspace.getConfiguration('ghosttext').get('serverPort', 4001);
+}
+
+// It doesn't actually do anything. The tab is created by the socket connection
+async function requestListener(
+	_request: unknown,
+	response: http.ServerResponse,
+) {
+	response.writeHead(200, {
+		'Content-Type': 'application/json',
+	});
+	response.end(
+		JSON.stringify({
+			ProtocolVersion: 1,
+			WebSocketPort: getPort(),
+		}),
+	);
+}
+
 function createServer() {
 	server?.close();
-	const serverPort =
-		vscode.workspace.getConfiguration('ghosttext').get('serverPort') ?? 4001;
-	server = http.createServer(requestListener).listen(serverPort);
+	server = http.createServer(requestListener).listen(getPort());
 	ws = new Server({server});
 	ws.on('connection', startGT);
 
@@ -114,22 +135,6 @@ function createServer() {
 			server.close();
 		},
 	});
-
-	// It doesn't actually do anything. The tab is created by the socket connection
-	async function requestListener(
-		_request: unknown,
-		response: http.ServerResponse,
-	) {
-		response.writeHead(200, {
-			'Content-Type': 'application/json',
-		});
-		response.end(
-			JSON.stringify({
-				ProtocolVersion: 1,
-				WebSocketPort: serverPort,
-			}),
-		);
-	}
 }
 
 function mapEditorSelections(
@@ -212,5 +217,9 @@ export function activate(_context: vscode.ExtensionContext) {
 		onDisconnectCommand,
 	);
 
-	context.subscriptions.push(disconnectCommandDisposable);
+	context.subscriptions.push(disconnectCommandDisposable, {
+		dispose() {
+			documents.clear();
+		},
+	});
 }
