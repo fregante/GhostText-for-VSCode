@@ -5,9 +5,7 @@ class GhostTextCodeLensProvider implements vscode.CodeLensProvider {
 	public readonly _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
 	public readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
 
-	provideCodeLenses(
-		document: vscode.TextDocument,
-	): vscode.ProviderResult<vscode.CodeLens[]> {
+	provideCodeLenses(document: vscode.TextDocument): vscode.ProviderResult<vscode.CodeLens[]> {
 		if (!documents.has(document.uri.toString())) {
 			return [];
 		}

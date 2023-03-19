@@ -18,7 +18,7 @@
     "watch": "tsc --watch"
   },
   "prettier": {
-    "printWidth": 120
+    "printWidth": 100
   },
   "contributes": {
     "configuration": {

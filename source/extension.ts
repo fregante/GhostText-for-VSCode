@@ -84,11 +84,7 @@ function startGT(socket: WebSocket) {
 
 		// When a message is received, replace the document content with the message
 		const edit = new vscode.WorkspaceEdit();
-		edit.replace(
-			document.uri,
-			new vscode.Range(0, 0, document.lineCount, 0),
-			text,
-		);
+		edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), text);
 
 		updateFromBrowserInProgress = true;
 		await vscode.workspace.applyEdit(edit);
@@ -109,10 +105,7 @@ function getPort() {
 }
 
 // It doesn't actually do anything. The tab is created by the socket connection
-async function requestListener(
-	_request: unknown,
-	response: http.ServerResponse,
-) {
+async function requestListener(_request: unknown, response: http.ServerResponse) {
 	response.writeHead(200, {
 		'Content-Type': 'application/json',
 	});
@@ -148,9 +141,7 @@ function mapEditorSelections(
 }
 
 function onDisconnectCommand(
-	uriString:
-		| string
-		| undefined = vscode.window.activeTextEditor?.document.uri.toString(),
+	uriString: string | undefined = vscode.window.activeTextEditor?.document.uri.toString(),
 ) {
 	if (uriString) {
 		documents.delete(uriString);
