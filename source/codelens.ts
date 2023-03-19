@@ -2,15 +2,10 @@ import * as vscode from 'vscode';
 import {documents} from './state.js';
 
 class GhostTextCodeLensProvider implements vscode.CodeLensProvider {
-	public readonly _onDidChangeCodeLenses: vscode.EventEmitter<void> =
-		new vscode.EventEmitter<void>();
+	public readonly _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
+	public readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
 
-	public readonly onDidChangeCodeLenses: vscode.Event<void> =
-		this._onDidChangeCodeLenses.event;
-
-	provideCodeLenses(
-		document: vscode.TextDocument,
-	): vscode.ProviderResult<vscode.CodeLens[]> {
+	provideCodeLenses(document: vscode.TextDocument): vscode.ProviderResult<vscode.CodeLens[]> {
 		if (!documents.has(document.uri.toString())) {
 			return [];
 		}
