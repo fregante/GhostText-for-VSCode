@@ -2,9 +2,6 @@
 
 import * as http from 'node:http';
 import {promisify} from 'node:util';
-import {join} from 'node:path';
-import {mkdtemp} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
 import {execFile} from 'node:child_process';
 import process from 'node:process';
 import * as vscode from 'vscode';
@@ -12,6 +9,9 @@ import {type WebSocket, Server} from 'ws';
 import filenamify from 'filenamify';
 import * as codelens from './codelens.js';
 import {documents} from './state.js';
+
+/** When the browser sends new content, the editor should not detect this "change" event and echo it */
+let updateFromBrowserInProgress = false;
 
 const exec = promisify(execFile);
 let context: vscode.ExtensionContext;
@@ -34,10 +34,8 @@ async function createTab(title: string, socket: WebSocket) {
 	const t = new Date();
 	// This string is visible if multiple tabs are open from the same page
 	const avoidsOverlappingFiles = `${t.getHours()}-${t.getMinutes()}-${t.getSeconds()}`;
-	const directory = await mkdtemp(join(tmpdir(), 'ghosttext-'));
-	const name = filenamify(title).trim();
 	const file = vscode.Uri.parse(
-		`untitled:${directory}/${avoidsOverlappingFiles}/${name}.md`,
+		`untitled:${avoidsOverlappingFiles}/${filenamify(title.trim())}.md`,
 	);
 	const document = await vscode.workspace.openTextDocument(file);
 	const editor = await vscode.window.showTextDocument(document, {
@@ -63,8 +61,6 @@ async function createTab(title: string, socket: WebSocket) {
 
 function startGT(socket: WebSocket) {
 	let tab: Promise<Tab>;
-	/** When the browser sends new content, the editor should not detect this "change" event and echo it */
-	let updateFromBrowserInProgress = false;
 
 	socket.on('close', async () => {
 		const {document} = await tab;
@@ -103,62 +99,6 @@ function startGT(socket: WebSocket) {
 				),
 		);
 	});
-
-	vscode.workspace.onDidChangeTextDocument(
-		async (event) => {
-			if (updateFromBrowserInProgress || event.contentChanges.length === 0) {
-				return;
-			}
-
-			const {document, editor} = await tab;
-
-			if (event.document === document) {
-				// When the editor content changes, send the new content back to the client
-				const content = document.getText();
-
-				const selections = editor.selections.map((selection) => ({
-					start: document.offsetAt(selection.start),
-					end: document.offsetAt(selection.end),
-				}));
-				socket.send(JSON.stringify({text: content, selections}));
-			}
-		},
-		null,
-		context.subscriptions,
-	);
-
-	vscode.workspace.onDidCloseTextDocument(
-		async (closedDocument) => {
-			const {document} = await tab;
-
-			// https://github.com/fregante/GhostText-for-VSCode/issues/2
-			if (closedDocument === document && closedDocument.isClosed) {
-				socket.close();
-			}
-		},
-		null,
-		context.subscriptions,
-	);
-
-	vscode.window.onDidChangeTextEditorSelection(
-		async (event) => {
-			const {document} = await tab;
-
-			if (event.textEditor.document !== document) {
-				return;
-			}
-
-			const content = document.getText();
-
-			const selections = event.selections.map((selection) => ({
-				start: document.offsetAt(selection.start),
-				end: document.offsetAt(selection.end),
-			}));
-			socket.send(JSON.stringify({text: content, selections}));
-		},
-		null,
-		context.subscriptions,
-	);
 }
 
 function createServer() {
@@ -175,6 +115,7 @@ function createServer() {
 		},
 	});
 
+	// It doesn't actually do anything. The tab is created by the socket connection
 	async function requestListener(
 		_request: unknown,
 		response: http.ServerResponse,
@@ -188,16 +129,20 @@ function createServer() {
 				WebSocketPort: serverPort,
 			}),
 		);
-
-		context.subscriptions.push({
-			dispose() {
-				ws.close();
-			},
-		});
 	}
 }
 
-function disconnectCommand(
+function mapEditorSelections(
+	document: vscode.TextDocument,
+	selections: readonly vscode.Selection[],
+) {
+	return selections.map((selection) => ({
+		start: document.offsetAt(selection.start),
+		end: document.offsetAt(selection.end),
+	}));
+}
+
+function onDisconnectCommand(
 	uriString:
 		| string
 		| undefined = vscode.window.activeTextEditor?.document.uri.toString(),
@@ -207,27 +152,65 @@ function disconnectCommand(
 	}
 }
 
+async function onDocumentClose(closedDocument: vscode.TextDocument) {
+	// https://github.com/fregante/GhostText-for-VSCode/issues/2
+	if (closedDocument.isClosed) {
+		documents.delete(closedDocument.uri.toString());
+	}
+}
+
+async function onLocalSelection(event: vscode.TextEditorSelectionChangeEvent) {
+	const document = event.textEditor.document;
+	const field = documents.get(document.uri.toString());
+	if (!field) {
+		return;
+	}
+
+	const content = document.getText();
+	const selections = mapEditorSelections(document, field.editor.selections);
+	field.socket.send(JSON.stringify({text: content, selections}));
+}
+
+function onConfigurationChange(event: vscode.ConfigurationChangeEvent) {
+	if (event.affectsConfiguration('ghosttext.serverPort')) {
+		createServer();
+	}
+}
+
+async function onLocalEdit(event: vscode.TextDocumentChangeEvent) {
+	if (updateFromBrowserInProgress || event.contentChanges.length === 0) {
+		return;
+	}
+
+	const document = event.document;
+	const field = documents.get(document.uri.toString());
+	if (!field) {
+		return;
+	}
+
+	const content = document.getText();
+	const selections = mapEditorSelections(document, field.editor.selections);
+	field.socket.send(JSON.stringify({text: content, selections}));
+}
+
 export function activate(_context: vscode.ExtensionContext) {
+	// Set global
 	context = _context;
+
+	const setup = [null, context.subscriptions] as const;
 	createServer();
-	codelens.activate(_context);
-
-	const disconnectCommandDisposable = vscode.commands.registerCommand(
-		'ghostText.disconnect',
-		disconnectCommand,
-	);
-
-	_context.subscriptions.push(disconnectCommandDisposable);
+	codelens.activate(context);
 
 	// Watch for changes to the HTTP port option
 	// This event is already debounced
-	vscode.workspace.onDidChangeConfiguration(
-		(event) => {
-			if (event.affectsConfiguration('ghosttext.serverPort')) {
-				createServer();
-			}
-		},
-		null,
-		context.subscriptions,
+	vscode.workspace.onDidChangeConfiguration(onConfigurationChange, ...setup);
+	vscode.workspace.onDidCloseTextDocument(onDocumentClose, ...setup);
+	vscode.window.onDidChangeTextEditorSelection(onLocalSelection, ...setup);
+	vscode.workspace.onDidChangeTextDocument(onLocalEdit, ...setup);
+	const disconnectCommandDisposable = vscode.commands.registerCommand(
+		'ghostText.disconnect',
+		onDisconnectCommand,
 	);
+
+	context.subscriptions.push(disconnectCommandDisposable);
 }

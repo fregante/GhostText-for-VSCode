@@ -1,7 +1,7 @@
 {
   "name": "ghost-text",
   "displayName": "GhostText Official",
-  "version": "1.0.4",
+  "version": "1.0.2",
   "description": "Write in the browser with VSCode",
   "categories": [
     "Other"
@@ -16,6 +16,9 @@
     "test": "tsc && xo",
     "vscode:prepublish": "npm run build",
     "watch": "tsc --watch"
+  },
+  "prettier": {
+    "printWidth": 120
   },
   "contributes": {
     "configuration": {
