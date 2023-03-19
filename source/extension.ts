@@ -17,7 +17,6 @@ let updateFromBrowserInProgress = false;
 const exec = promisify(execFile);
 let context: vscode.ExtensionContext;
 let server: http.Server;
-let ws: Server;
 
 const osxFocus = `
 	tell application "Visual Studio Code"
@@ -31,7 +30,7 @@ function bringEditorToFront() {
 
 type Tab = {document: vscode.TextDocument; editor: vscode.TextEditor};
 
-async function createTab(title: string, socket: WebSocket) {
+async function initView(title: string, socket: WebSocket) {
 	const t = new Date();
 	// This string is visible if multiple tabs are open from the same page
 	const avoidsOverlappingFiles = `${t.getHours()}-${t.getMinutes()}-${t.getSeconds()}`;
@@ -79,7 +78,7 @@ function startGT(socket: WebSocket) {
 			selections: Array<{start: number; end: number}>;
 		};
 
-		tab ??= createTab(title, socket);
+		tab ??= initView(title, socket);
 		const {document, editor} = await tab;
 
 		// When a message is received, replace the document content with the message
@@ -104,8 +103,7 @@ function getPort() {
 	return vscode.workspace.getConfiguration('ghosttext').get('serverPort', 4001);
 }
 
-// It doesn't actually do anything. The tab is created by the socket connection
-async function requestListener(_request: unknown, response: http.ServerResponse) {
+async function pingResponder(_: unknown, response: http.ServerResponse) {
 	response.writeHead(200, {
 		'Content-Type': 'application/json',
 	});
@@ -119,8 +117,8 @@ async function requestListener(_request: unknown, response: http.ServerResponse)
 
 function createServer() {
 	server?.close();
-	server = http.createServer(requestListener).listen(getPort());
-	ws = new Server({server});
+	server = http.createServer(pingResponder).listen(getPort());
+	const ws = new Server({server});
 	ws.on('connection', startGT);
 
 	context.subscriptions.push({
