@@ -10,7 +10,6 @@ class GhostTextCodeLensProvider implements vscode.CodeLensProvider {
 
 	provideCodeLenses(
 		document: vscode.TextDocument,
-		token: vscode.CancellationToken,
 	): vscode.ProviderResult<vscode.CodeLens[]> {
 		if (!documents.has(document.uri.toString())) {
 			return [];
