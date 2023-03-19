@@ -8,6 +8,7 @@ import * as vscode from 'vscode';
 import {type WebSocket, Server} from 'ws';
 import filenamify from 'filenamify';
 import * as codelens from './codelens.js';
+import {documents} from './state.js';
 
 const exec = promisify(execFile);
 let context: vscode.ExtensionContext;
@@ -26,7 +27,7 @@ function bringEditorToFront() {
 
 type Tab = {document: vscode.TextDocument; editor: vscode.TextEditor};
 
-async function createTab(title: string) {
+async function createTab(title: string, socket: WebSocket) {
 	const t = new Date();
 	// This string is visible if multiple tabs are open from the same page
 	const avoidsOverlappingFiles = `${t.getHours()}-${t.getMinutes()}-${t.getSeconds()}`;
@@ -40,7 +41,18 @@ async function createTab(title: string) {
 	});
 
 	bringEditorToFront();
-	codelens.add(document);
+	const uriString = file.toString();
+	documents.set(uriString, {
+		uri: uriString,
+		document,
+		editor,
+		socket,
+	});
+	documents.onRemove((removedUriString) => {
+		if (uriString === removedUriString) {
+			socket.close();
+		}
+	});
 	return {document, editor};
 }
 
@@ -49,9 +61,10 @@ function startGT(socket: WebSocket) {
 	/** When the browser sends new content, the editor should not detect this "change" event and echo it */
 	let updateFromBrowserInProgress = false;
 
-	// Socket.on('close', async () => {
-	// 	const {document} = await tab;
-	// });
+	socket.on('close', async () => {
+		const {document} = await tab;
+		documents.delete(document.uri.toString());
+	});
 
 	// Listen for incoming messages on the WebSocket
 	// Don't `await` anything before this or else it might come too late
@@ -62,7 +75,7 @@ function startGT(socket: WebSocket) {
 			selections: Array<{start: number; end: number}>;
 		};
 
-		tab ??= createTab(title);
+		tab ??= createTab(title, socket);
 		const {document, editor} = await tab;
 
 		// When a message is received, replace the document content with the message
@@ -179,10 +192,28 @@ function createServer() {
 	}
 }
 
+function disconnectCommand(
+	uriString:
+		| string
+		| undefined = vscode.window.activeTextEditor?.document.uri.toString(),
+) {
+	console.log('Will disconnect', {uriString});
+	if (uriString) {
+		documents.delete(uriString);
+	}
+}
+
 export function activate(_context: vscode.ExtensionContext) {
 	context = _context;
 	createServer();
 	codelens.activate(_context);
+
+	const disconnectCommandDisposable = vscode.commands.registerCommand(
+		'ghostText.disconnect',
+		disconnectCommand,
+	);
+
+	_context.subscriptions.push(disconnectCommandDisposable);
 
 	// Watch for changes to the HTTP port option
 	// This event is already debounced

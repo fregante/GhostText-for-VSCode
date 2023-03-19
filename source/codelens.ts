@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
+import {documents} from './state.js';
 
-const enabledDocuments = new Set<string>();
 class GhostTextCodeLensProvider implements vscode.CodeLensProvider {
 	public readonly _onDidChangeCodeLenses: vscode.EventEmitter<void> =
 		new vscode.EventEmitter<void>();
@@ -12,7 +12,7 @@ class GhostTextCodeLensProvider implements vscode.CodeLensProvider {
 		document: vscode.TextDocument,
 		token: vscode.CancellationToken,
 	): vscode.ProviderResult<vscode.CodeLens[]> {
-		if (!enabledDocuments.has(document.uri.toString())) {
+		if (!documents.has(document.uri.toString())) {
 			return [];
 		}
 
@@ -27,29 +27,18 @@ class GhostTextCodeLensProvider implements vscode.CodeLensProvider {
 	}
 }
 
-export function add(document: vscode.TextDocument) {
-	enabledDocuments.add(document.uri.toString());
-}
-
-export function remove(document: vscode.TextDocument) {
-	enabledDocuments.delete(document.uri.toString());
-}
-
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext): void {
 	const codeLensProvider = new GhostTextCodeLensProvider();
 	const codeLensDisposable = vscode.languages.registerCodeLensProvider(
 		{scheme: 'untitled'},
 		codeLensProvider,
 	);
-	const disconnectCommandDisposable = vscode.commands.registerCommand(
-		'ghostText.disconnect',
-		(uriString) => {
-			codeLensProvider._onDidChangeCodeLenses.fire(uriString)
-			const editor = vscode.window.activeTextEditor;
-			if (editor) {
-				enabledDocuments.delete(uriString);
-			}
+	context.subscriptions.push(codeLensDisposable);
+	documents.onRemove(
+		() => {
+			codeLensProvider._onDidChangeCodeLenses.fire();
 		},
+		null,
+		context.subscriptions,
 	);
-	context.subscriptions.push(codeLensDisposable, disconnectCommandDisposable);
 }
