@@ -99,7 +99,7 @@ function startGT(socket: WebSocket) {
 	});
 }
 
-function getFileExtension() {
+function getFileExtension(): string {
 	// Use ?? to set the default or else an empty field will override it
 	return vscode.workspace.getConfiguration('ghosttext').get('fileExtension') ?? 'ghosttext';
 }
