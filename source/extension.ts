@@ -100,8 +100,9 @@ function startGT(socket: WebSocket) {
 }
 
 function getFileExtension(): string {
-	// Use ?? to set the default or else an empty field will override it
-	return vscode.workspace.getConfiguration('ghosttext').get('fileExtension') ?? 'ghosttext';
+	// Use || to set the default or else an empty field will override it
+	// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+	return vscode.workspace.getConfiguration('ghosttext').get('fileExtension') || 'ghosttext';
 }
 
 function getPort() {
