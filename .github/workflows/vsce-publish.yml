@@ -21,12 +21,14 @@ jobs:
       - run: npm ci
       - uses: fregante/setup-git-user@v2
       - name: Create version
-        run: VERSION="$(npm version "${{ github.event.inputs.Version }}")"
+        run: |
+          VERSION="$(npm version "${{ github.event.inputs.Version }}")"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
         # Get the generated version, this enables support for keywords: `npm version patch`
       - run: npx @vscode/vsce@2 publish
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-      - run: git push
+      - run: git push origin "$VERSION"
       - run: gh release create "$VERSION" --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
