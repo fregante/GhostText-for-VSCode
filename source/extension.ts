@@ -34,7 +34,7 @@ async function initView(title: string, socket: WebSocket) {
 	const t = new Date();
 	// This string is visible if multiple tabs are open from the same page
 	const avoidsOverlappingFiles = `${t.getHours()}-${t.getMinutes()}-${t.getSeconds()}`;
-	const filename = `${filenamify(title.trim())}.md`;
+	const filename = `${filenamify(title.trim(), {replacement: '-'})}.${getFileExtension()}`;
 	const file = vscode.Uri.from({
 		scheme: 'untitled',
 		path: `${tmpdir()}/${avoidsOverlappingFiles}/${filename}`,
@@ -97,6 +97,12 @@ function startGT(socket: WebSocket) {
 				),
 		);
 	});
+}
+
+function getFileExtension(): string {
+	// Use || to set the default or else an empty field will override it
+	// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+	return vscode.workspace.getConfiguration('ghosttext').get('fileExtension') || 'ghosttext';
 }
 
 function getPort() {
