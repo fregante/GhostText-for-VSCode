@@ -20,18 +20,18 @@ class GhostTextCodeLensProvider implements vscode.CodeLensProvider {
 	}
 }
 
-export function activate(context: vscode.ExtensionContext): void {
+export function activate(subscriptions: vscode.ExtensionContext['subscriptions']): void {
 	const codeLensProvider = new GhostTextCodeLensProvider();
 	const codeLensDisposable = vscode.languages.registerCodeLensProvider(
 		{pattern: '**/*'},
 		codeLensProvider,
 	);
-	context.subscriptions.push(codeLensDisposable);
+	subscriptions.push(codeLensDisposable);
 	documents.onRemove(
 		() => {
 			codeLensProvider._onDidChangeCodeLenses.fire();
 		},
 		null,
-		context.subscriptions,
+		subscriptions,
 	);
 }

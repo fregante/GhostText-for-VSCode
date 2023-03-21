@@ -1,22 +1,19 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-
-import * as http from 'node:http';
 import {promisify} from 'node:util';
 import {tmpdir} from 'node:os';
 import {execFile} from 'node:child_process';
 import process from 'node:process';
 import * as vscode from 'vscode';
-import {type WebSocket, Server} from 'ws';
+import {type WebSocket} from 'ws';
 import filenamify from 'filenamify';
 import * as codelens from './codelens.js';
 import {documents} from './state.js';
+import {createServer} from './server.js';
 
 /** When the browser sends new content, the editor should not detect this "change" event and echo it */
 let updateFromBrowserInProgress = false;
 
 const exec = promisify(execFile);
 let context: vscode.ExtensionContext;
-let server: http.Server;
 
 const osxFocus = `
 	tell application "Visual Studio Code"
@@ -61,7 +58,7 @@ async function initView(title: string, socket: WebSocket) {
 	return {document, editor};
 }
 
-function startGT(socket: WebSocket) {
+function openConnection(socket: WebSocket) {
 	let tab: Promise<Tab>;
 
 	socket.on('close', async () => {
@@ -105,35 +102,6 @@ function getFileExtension(): string {
 	return vscode.workspace.getConfiguration('ghosttext').get('fileExtension') || 'ghosttext';
 }
 
-function getPort() {
-	return vscode.workspace.getConfiguration('ghosttext').get('serverPort', 4001);
-}
-
-async function pingResponder(_: unknown, response: http.ServerResponse) {
-	response.writeHead(200, {
-		'Content-Type': 'application/json',
-	});
-	response.end(
-		JSON.stringify({
-			ProtocolVersion: 1,
-			WebSocketPort: getPort(),
-		}),
-	);
-}
-
-function createServer() {
-	server?.close();
-	server = http.createServer(pingResponder).listen(getPort());
-	const ws = new Server({server});
-	ws.on('connection', startGT);
-
-	context.subscriptions.push({
-		dispose() {
-			server.close();
-		},
-	});
-}
-
 function mapEditorSelections(
 	document: vscode.TextDocument,
 	selections: readonly vscode.Selection[],
@@ -173,7 +141,7 @@ async function onLocalSelection(event: vscode.TextEditorSelectionChangeEvent) {
 
 function onConfigurationChange(event: vscode.ConfigurationChangeEvent) {
 	if (event.affectsConfiguration('ghosttext.serverPort')) {
-		createServer();
+		createServer(context.subscriptions, openConnection);
 	}
 }
 
@@ -198,8 +166,8 @@ export function activate(_context: vscode.ExtensionContext) {
 	context = _context;
 
 	const setup = [null, context.subscriptions] as const;
-	createServer();
-	codelens.activate(context);
+	createServer(context.subscriptions, openConnection);
+	codelens.activate(context.subscriptions);
 
 	// Watch for changes to the HTTP port option
 	// This event is already debounced
