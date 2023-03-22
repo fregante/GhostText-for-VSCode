@@ -21,6 +21,19 @@
     "printWidth": 100
   },
   "contributes": {
+    "title": "GhostText",
+    "commands": [
+      {
+        "command": "ghostText.startServer",
+        "title": "GhostText: Start server",
+        "when": "!ghostText.server"
+      },
+      {
+        "command": "ghostText.stopServer",
+        "title": "GhostText: Stop server",
+        "when": "ghostText.server"
+      }
+    ],
     "configuration": {
       "title": "GhostText",
       "properties": {

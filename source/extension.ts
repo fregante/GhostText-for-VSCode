@@ -7,7 +7,8 @@ import {type WebSocket} from 'ws';
 import filenamify from 'filenamify';
 import * as codelens from './codelens.js';
 import {documents} from './state.js';
-import {createServer} from './server.js';
+import {startServer, stopServer} from './server.js';
+import {registerCommand} from './vscode.js';
 
 /** When the browser sends new content, the editor should not detect this "change" event and echo it */
 let updateFromBrowserInProgress = false;
@@ -141,7 +142,7 @@ async function onLocalSelection(event: vscode.TextEditorSelectionChangeEvent) {
 
 function onConfigurationChange(event: vscode.ConfigurationChangeEvent) {
 	if (event.affectsConfiguration('ghostText.serverPort')) {
-		createServer(context.subscriptions, openConnection);
+		startServer(context.subscriptions, openConnection);
 	}
 }
 
@@ -164,10 +165,11 @@ async function onLocalEdit(event: vscode.TextDocumentChangeEvent) {
 export function activate(_context: vscode.ExtensionContext) {
 	// Set global
 	context = _context;
+	const {subscriptions} = context;
 
-	const setup = [null, context.subscriptions] as const;
-	createServer(context.subscriptions, openConnection);
-	codelens.activate(context.subscriptions);
+	const setup = [null, subscriptions] as const;
+	startServer(subscriptions, openConnection);
+	codelens.activate(subscriptions);
 
 	// Watch for changes to the HTTP port option
 	// This event is already debounced
@@ -175,12 +177,24 @@ export function activate(_context: vscode.ExtensionContext) {
 	vscode.workspace.onDidCloseTextDocument(onDocumentClose, ...setup);
 	vscode.window.onDidChangeTextEditorSelection(onLocalSelection, ...setup);
 	vscode.workspace.onDidChangeTextDocument(onLocalEdit, ...setup);
-	const disconnectCommandDisposable = vscode.commands.registerCommand(
-		'ghostText.disconnect',
-		onDisconnectCommand,
+	registerCommand('ghostText.disconnect', onDisconnectCommand, subscriptions);
+
+	registerCommand(
+		'ghostText.startServer',
+		async () => {
+			startServer(subscriptions, openConnection);
+		},
+		subscriptions,
+	);
+	registerCommand(
+		'ghostText.stopServer',
+		async () => {
+			stopServer();
+		},
+		subscriptions,
 	);
 
-	context.subscriptions.push(disconnectCommandDisposable, {
+	context.subscriptions.push({
 		dispose() {
 			documents.clear();
 		},
