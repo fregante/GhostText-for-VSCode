@@ -28,7 +28,7 @@ jobs:
       - run: npx @vscode/vsce@2 publish
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-      - run: git push origin "$VERSION"
+      - run: git push --follow-tags
       - run: gh release create "$VERSION" --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
