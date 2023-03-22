@@ -22,26 +22,16 @@
   },
   "contributes": {
     "title": "GhostText",
-    "menus": {
-      "commandPalette": [
-        {
-          "command": "ghostText.startServer",
-          "when": "!ghostText.server"
-        },
-        {
-          "command": "ghostText.stopServer",
-          "when": "ghostText.server"
-        }
-      ]
-    },
     "commands": [
       {
         "command": "ghostText.startServer",
-        "title": "GhostText: Start server"
+        "title": "GhostText: Start server",
+        "when": "!ghostText.server"
       },
       {
         "command": "ghostText.stopServer",
-        "title": "GhostText: Stop server"
+        "title": "GhostText: Stop server",
+        "when": "ghostText.server"
       }
     ],
     "configuration": {
