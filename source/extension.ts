@@ -178,7 +178,7 @@ export function activate(_context: vscode.ExtensionContext) {
 	vscode.window.onDidChangeTextEditorSelection(onLocalSelection, ...setup);
 	vscode.workspace.onDidChangeTextDocument(onLocalEdit, ...setup);
 	registerCommand('ghostText.disconnect', onDisconnectCommand, subscriptions);
-	registerCommand('ghostText.stopServer', stopServer(), subscriptions);
+	registerCommand('ghostText.stopServer', stopServer, subscriptions);
 	registerCommand(
 		'ghostText.startServer',
 		async () => {
