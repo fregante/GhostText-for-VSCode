@@ -24,13 +24,13 @@
     "configuration": {
       "title": "GhostText",
       "properties": {
-        "ghosttext.serverPort": {
+        "ghostText.serverPort": {
           "type": "number",
           "default": 4001,
           "minimum": 0,
           "description": "The port to open for the browser extension to connect to VS Code (default: 4001)"
         },
-        "ghosttext.fileExtension": {
+        "ghostText.fileExtension": {
           "type": "string",
           "description": "The default filetype used when opening a new editor. You can use md for markdown, js for javascript, etc. It's advised to leave it empty so VS Code will guess the type automatically."
         }
