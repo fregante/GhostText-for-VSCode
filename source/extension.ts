@@ -99,7 +99,7 @@ function openConnection(socket: WebSocket) {
 function getFileExtension(): string {
 	// Use || to set the default or else an empty field will override it
 	// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-	return vscode.workspace.getConfiguration('ghosttext').get('fileExtension') || 'ghosttext';
+	return vscode.workspace.getConfiguration('ghostText').get('fileExtension') || 'ghosttext';
 }
 
 function mapEditorSelections(
@@ -140,7 +140,7 @@ async function onLocalSelection(event: vscode.TextEditorSelectionChangeEvent) {
 }
 
 function onConfigurationChange(event: vscode.ConfigurationChangeEvent) {
-	if (event.affectsConfiguration('ghosttext.serverPort')) {
+	if (event.affectsConfiguration('ghostText.serverPort')) {
 		createServer(context.subscriptions, openConnection);
 	}
 }

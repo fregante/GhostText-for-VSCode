@@ -5,7 +5,7 @@ import {type WebSocket, Server} from 'ws';
 let server: http.Server;
 
 function getPort() {
-	return vscode.workspace.getConfiguration('ghosttext').get('serverPort', 4001);
+	return vscode.workspace.getConfiguration('ghostText').get('serverPort', 4001);
 }
 
 async function pingResponder(_: unknown, response: http.ServerResponse) {
