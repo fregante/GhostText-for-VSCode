@@ -26,12 +26,12 @@
       {
         "command": "ghostText.startServer",
         "title": "GhostText: Start server",
-        "when": "!ghostText.server"
+        "enablement": "!ghostText.server"
       },
       {
         "command": "ghostText.stopServer",
         "title": "GhostText: Stop server",
-        "when": "ghostText.server"
+        "enablement": "ghostText.server"
       }
     ],
     "configuration": {
