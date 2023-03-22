@@ -32,3 +32,6 @@ jobs:
       - run: gh release create "$VERSION" --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
+
+# Token generated on https://dev.azure.com/fregante/GhostText
+# Extension manageable on https://marketplace.visualstudio.com/manage/publishers/fregante
