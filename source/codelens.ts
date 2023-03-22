@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import {documents} from './state.js';
+import {type Subscriptions} from './vscode.js';
 
 class GhostTextCodeLensProvider implements vscode.CodeLensProvider {
 	public readonly _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
@@ -20,7 +21,7 @@ class GhostTextCodeLensProvider implements vscode.CodeLensProvider {
 	}
 }
 
-export function activate(subscriptions: vscode.ExtensionContext['subscriptions']): void {
+export function activate(subscriptions: Subscriptions): void {
 	const codeLensProvider = new GhostTextCodeLensProvider();
 	const codeLensDisposable = vscode.languages.registerCodeLensProvider(
 		{pattern: '**/*'},
