@@ -1,7 +1,4 @@
-import {promisify} from 'node:util';
 import {tmpdir} from 'node:os';
-import {execFile} from 'node:child_process';
-import process from 'node:process';
 import * as vscode from 'vscode';
 import {type WebSocket} from 'ws';
 import filenamify from 'filenamify';
@@ -9,22 +6,12 @@ import * as codelens from './codelens.js';
 import {documents} from './state.js';
 import {startServer, stopServer} from './server.js';
 import {registerCommand} from './vscode.js';
+import {bringEditorToFront} from './focus.js';
 
 /** When the browser sends new content, the editor should not detect this "change" event and echo it */
 let updateFromBrowserInProgress = false;
 
-const exec = promisify(execFile);
 let context: vscode.ExtensionContext;
-
-const osxFocus = `
-	tell application "Visual Studio Code"
-		activate
-	end tell`;
-function bringEditorToFront() {
-	if (process.platform === 'darwin') {
-		void exec('osascript', ['-e', osxFocus]);
-	}
-}
 
 type Tab = {document: vscode.TextDocument; editor: vscode.TextEditor};
 
@@ -43,7 +30,7 @@ async function initView(title: string, socket: WebSocket) {
 		preview: false,
 	});
 
-	bringEditorToFront();
+	void bringEditorToFront();
 	const uriString = file.toString();
 	documents.set(uriString, {
 		uri: uriString,
