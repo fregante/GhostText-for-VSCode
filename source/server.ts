@@ -25,7 +25,7 @@ async function pingResponder(_: unknown, response: http.ServerResponse) {
 
 export function startServer(
 	subscriptions: Subscriptions,
-	onConnection: (socket: WebSocket) => void,
+	onConnection: (socket: WebSocket, request: http.IncomingMessage) => void,
 ) {
 	console.log('GhostText: Server starting');
 	server?.close();
