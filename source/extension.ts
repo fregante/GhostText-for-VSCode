@@ -61,6 +61,7 @@ async function initView(title: string, socket: WebSocket) {
 }
 
 function openConnection(socket: WebSocket, request: IncomingMessage) {
+	// Only the background page can connect to this server
 	try {
 		if (!new URL(request.headers.origin!).protocol.endsWith('extension:')) {
 			socket.close();
