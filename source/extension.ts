@@ -2,6 +2,7 @@ import {promisify} from 'node:util';
 import {tmpdir} from 'node:os';
 import {execFile} from 'node:child_process';
 import process from 'node:process';
+import {type IncomingMessage} from 'node:http';
 import * as vscode from 'vscode';
 import {type WebSocket} from 'ws';
 import filenamify from 'filenamify';
@@ -59,7 +60,18 @@ async function initView(title: string, socket: WebSocket) {
 	return {document, editor};
 }
 
-function openConnection(socket: WebSocket) {
+function openConnection(socket: WebSocket, request: IncomingMessage) {
+	// Only the background page can connect to this server
+	try {
+		if (!new URL(request.headers.origin!).protocol.endsWith('extension:')) {
+			socket.close();
+			return;
+		}
+	} catch {
+		socket.close();
+		return;
+	}
+
 	let tab: Promise<Tab>;
 
 	socket.on('close', async () => {
