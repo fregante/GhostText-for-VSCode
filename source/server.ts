@@ -23,13 +23,33 @@ async function pingResponder(_: unknown, response: http.ServerResponse) {
 	);
 }
 
-export function startServer(
+export class Eaddrinuse extends Error {}
+
+async function listen(server: http.Server) {
+	const port = getPort();
+	return new Promise((resolve, reject) => {
+		server
+			.listen(getPort())
+			.once('listening', resolve)
+			.once('error', (error) => {
+				if ((error as any).code === 'EADDRINUSE') {
+					reject(new Eaddrinuse(`The port ${port} is already in use`));
+				} else {
+					reject(error);
+				}
+			});
+	});
+}
+
+export async function startServer(
 	subscriptions: Subscriptions,
 	onConnection: (socket: WebSocket, request: http.IncomingMessage) => void,
 ) {
 	console.log('GhostText: Server starting');
 	server?.close();
-	server = http.createServer(pingResponder).listen(getPort());
+	server = http.createServer(pingResponder);
+
+	await listen(server);
 	const ws = new Server({server});
 	ws.on('connection', onConnection);
 	console.log('GhostText: Server started');

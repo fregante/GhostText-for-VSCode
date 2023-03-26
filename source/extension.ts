@@ -8,8 +8,8 @@ import {type WebSocket} from 'ws';
 import filenamify from 'filenamify';
 import * as codelens from './codelens.js';
 import {documents} from './state.js';
-import {startServer, stopServer} from './server.js';
-import {registerCommand} from './vscode.js';
+import {Eaddrinuse, startServer, stopServer} from './server.js';
+import {registerCommand, type Subscriptions} from './vscode.js';
 
 /** When the browser sends new content, the editor should not detect this "change" event and echo it */
 let updateFromBrowserInProgress = false;
@@ -152,9 +152,9 @@ async function onLocalSelection(event: vscode.TextEditorSelectionChangeEvent) {
 	field.socket.send(JSON.stringify({text: content, selections}));
 }
 
-function onConfigurationChange(event: vscode.ConfigurationChangeEvent) {
+async function onConfigurationChange(event: vscode.ConfigurationChangeEvent) {
 	if (event.affectsConfiguration('ghostText.serverPort')) {
-		startServer(context.subscriptions, openConnection);
+		await startServer(context.subscriptions, openConnection);
 	}
 }
 
@@ -174,15 +174,10 @@ async function onLocalEdit(event: vscode.TextDocumentChangeEvent) {
 	field.socket.send(JSON.stringify({text: content, selections}));
 }
 
-export function activate(_context: vscode.ExtensionContext) {
-	// Set global
-	context = _context;
-	const {subscriptions} = context;
-
+function registerListeners(subscriptions: Subscriptions) {
 	const setup = [null, subscriptions] as const;
-	startServer(subscriptions, openConnection);
-	codelens.activate(subscriptions);
 
+	codelens.activate(subscriptions);
 	// Watch for changes to the HTTP port option
 	// This event is already debounced
 	vscode.workspace.onDidChangeConfiguration(onConfigurationChange, ...setup);
@@ -194,12 +189,31 @@ export function activate(_context: vscode.ExtensionContext) {
 	registerCommand(
 		'ghostText.startServer',
 		async () => {
-			startServer(subscriptions, openConnection);
+			await startServer(subscriptions, openConnection);
 		},
 		subscriptions,
 	);
+}
 
-	context.subscriptions.push({
+export async function activate(_context: vscode.ExtensionContext) {
+	// Set global
+	context = _context;
+	const {subscriptions} = context;
+
+	// Listen to commands before starting the server
+	registerListeners(subscriptions);
+
+	try {
+		await startServer(subscriptions, openConnection);
+	} catch (error: unknown) {
+		if (error instanceof Eaddrinuse) {
+			return;
+		}
+
+		throw error;
+	}
+
+	subscriptions.push({
 		dispose() {
 			documents.clear();
 		},
