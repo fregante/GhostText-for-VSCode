@@ -21,10 +21,10 @@ jobs:
       - run: npm ci
       - uses: fregante/setup-git-user@v2
       - name: Create version
+        # Get the generated version, this enables support for keywords: `npm version patch`
         run: |
           VERSION="$(npm version "${{ github.event.inputs.Version }}")"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-        # Get the generated version, this enables support for keywords: `npm version patch`
       - run: npx @vscode/vsce@2 publish
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
@@ -32,6 +32,9 @@ jobs:
       - run: gh release create "$VERSION" --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
+      - run: npx ovsx publish
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
 
 # Token generated on https://dev.azure.com/fregante/GhostText
 # Extension manageable on https://marketplace.visualstudio.com/manage/publishers/fregante
