@@ -3,10 +3,15 @@ import * as vscode from 'vscode';
 import {type WebSocket, Server} from 'ws';
 import {type Subscriptions} from './vscode.js';
 
-let server: http.Server | undefined;
+// eslint-disable-next-line import/no-mutable-exports
+export let server: http.Server | undefined;
 
 function getPort() {
 	return vscode.workspace.getConfiguration('ghostText').get('serverPort', 4001);
+}
+
+export function isServerOn() {
+	return Boolean(server);
 }
 
 async function pingResponder(_: unknown, response: http.ServerResponse) {

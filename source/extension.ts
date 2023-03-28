@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import {type WebSocket} from 'ws';
 import filenamify from 'filenamify';
 import * as codelens from './codelens.js';
+import * as status from './status.js';
 import {documents} from './state.js';
 import {Eaddrinuse, startServer, stopServer} from './server.js';
 import {registerCommand, type Subscriptions} from './vscode.js';
@@ -178,6 +179,10 @@ function registerListeners(subscriptions: Subscriptions) {
 	const setup = [null, subscriptions] as const;
 
 	codelens.activate(subscriptions);
+	console.log(2222222);
+
+	status.activate(subscriptions);
+	console.log(222222233333);
 	// Watch for changes to the HTTP port option
 	// This event is already debounced
 	vscode.workspace.onDidChangeConfiguration(onConfigurationChange, ...setup);
