@@ -5,6 +5,9 @@ Use VS Code to write in your browser. Everything you type in the editor will be 
 
 [<img src="https://user-images.githubusercontent.com/1402241/226268562-aa1a02e3-d5ba-416d-865f-9a77fafb06bf.png" width="32" valign="middle"> Download GhostText for VS Code](https://marketplace.visualstudio.com/items?itemName=fregante.ghost-text)
 
+[<img src="https://user-images.githubusercontent.com/1402241/228314682-70368137-4471-4048-9f79-6b55996cda44.png" width="32" valign="middle"> Download GhostText for VSCodium](https://open-vsx.org/extension/fregante/ghost-text)
+
+
 <img src="https://user-images.githubusercontent.com/1402241/226180991-5be2517c-ef2a-4884-8427-f4080ff0eac8.gif" alt="Demo screencast">
 
 ## Documentation
