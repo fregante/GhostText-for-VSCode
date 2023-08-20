@@ -135,6 +135,10 @@ function onDisconnectCommand(
 
 async function onDocumentClose(closedDocument: vscode.TextDocument) {
 	// https://github.com/fregante/GhostText-for-VSCode/issues/2
+	const field = documents.get(closedDocument.uri.toString());
+	if (!field) {
+		return;
+	}
 	if (closedDocument.isClosed) {
 		documents.delete(closedDocument.uri.toString());
 	}
