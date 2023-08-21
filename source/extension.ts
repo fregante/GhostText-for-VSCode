@@ -13,6 +13,7 @@ import {registerCommand, type Subscriptions} from './vscode.js';
 
 /** When the browser sends new content, the editor should not detect this "change" event and echo it */
 let updateFromBrowserInProgress = false;
+let isAutoClosingEditor = false; 
 
 const exec = promisify(execFile);
 let context: vscode.ExtensionContext;
@@ -139,9 +140,18 @@ async function onDocumentClose(closedDocument: vscode.TextDocument) {
 	if (!field) {
 		return;
 	}
+
+	if (isAutoClosingEditor) {
+		isAutoClosingEditor = false
+		return
+	}
+
 	if (closedDocument.isClosed) {
 		documents.delete(closedDocument.uri.toString());
 	}
+
+	isAutoClosingEditor = true
+	await vscode.commands.executeCommand('workbench.action.closeActiveEditor')
 }
 
 async function onLocalSelection(event: vscode.TextEditorSelectionChangeEvent) {
