@@ -21,7 +21,3 @@ Use VS Code to write in your browser. Everything you type in the editor will be 
 <a href="https://github.com/fregante/GhostText"><picture><source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/3369400/139447912-e0f43f33-6d9f-45f8-be46-2df5bbc91289.png"><img width="24" valign="middle" src="https://user-images.githubusercontent.com/3369400/139448065-39a229ba-4b06-434b-bc67-616e2ed80c8f.png"></picture> GhostText for the browser</a>
 
 <a href="https://github.com/fregante/GhostText-for-VSCode"><picture><source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/3369400/139447912-e0f43f33-6d9f-45f8-be46-2df5bbc91289.png"><img width="24" valign="middle" src="https://user-images.githubusercontent.com/3369400/139448065-39a229ba-4b06-434b-bc67-616e2ed80c8f.png"></picture> GhostText for VS Code</a>
-
-## License
-
-MIT © [Federico Brigante](https://fregante.com)
