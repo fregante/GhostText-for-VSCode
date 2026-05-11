@@ -23,8 +23,9 @@ function pingResponder(_: unknown, response: http.ServerResponse) {
 	);
 }
 
-// eslint-disable-next-line @stylistic/curly-newline
-export class Eaddrinuse extends Error {}
+export class Eaddrinuse extends Error {
+	override readonly name = 'Eaddrinuse';
+}
 
 async function listen(server: http.Server) {
 	const port = getPort();

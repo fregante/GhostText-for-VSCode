@@ -58,18 +58,23 @@
   },
   "dependencies": {
     "filenamify": "^4.3.0",
-    "ws": "^8.20.0"
+    "ws": "^8.13.0"
   },
   "devDependencies": {
     "@sindresorhus/tsconfig": "^8.1.0",
-    "@types/vscode": "^1.118.0",
+    "@types/vscode": "^1.76.0",
     "@types/ws": "^8.18.1",
     "typescript": "^5.9.3",
     "xo": "^2.0.2"
   },
   "engines": {
-    "node": ">=24",
-    "vscode": "^1.118.0"
+    "vscode": "^1.76.0"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=24"
+    }
   },
   "icon": "icon.png",
   "sponsor": {
