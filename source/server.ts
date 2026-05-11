@@ -9,7 +9,7 @@ function getPort() {
 	return vscode.workspace.getConfiguration('ghostText').get('serverPort', 4001);
 }
 
-async function pingResponder(_: unknown, response: http.ServerResponse) {
+function pingResponder(_: unknown, response: http.ServerResponse) {
 	response.writeHead(200, {
 		'Content-Type': 'application/json',
 	});
@@ -23,7 +23,9 @@ async function pingResponder(_: unknown, response: http.ServerResponse) {
 	);
 }
 
-export class Eaddrinuse extends Error {}
+export class Eaddrinuse extends Error {
+	override readonly name = 'Eaddrinuse';
+}
 
 async function listen(server: http.Server) {
 	const port = getPort();
@@ -32,7 +34,7 @@ async function listen(server: http.Server) {
 			.listen(getPort())
 			.once('listening', resolve)
 			.once('error', (error) => {
-				if ((error as any).code === 'EADDRINUSE') {
+				if ((error as NodeJS.ErrnoException).code === 'EADDRINUSE') {
 					reject(new Eaddrinuse(`The port ${port} is already in use`));
 				} else {
 					reject(error);

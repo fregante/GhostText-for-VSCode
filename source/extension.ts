@@ -14,6 +14,7 @@ import {registerCommand, type Subscriptions} from './vscode.js';
 /** When the browser sends new content, the editor should not detect this "change" event and echo it */
 let updateFromBrowserInProgress = false;
 
+// eslint-disable-next-line @typescript-eslint/strict-void-return
 const exec = promisify(execFile);
 let context: vscode.ExtensionContext;
 
@@ -74,6 +75,7 @@ function openConnection(socket: WebSocket, request: IncomingMessage) {
 
 	let tab: Promise<Tab>;
 
+	// eslint-disable-next-line @typescript-eslint/strict-void-return
 	socket.on('close', async () => {
 		const {document} = await tab;
 		documents.delete(document.uri.toString());
@@ -81,7 +83,9 @@ function openConnection(socket: WebSocket, request: IncomingMessage) {
 
 	// Listen for incoming messages on the WebSocket
 	// Don't `await` anything before this or else it might come too late
+	// eslint-disable-next-line @typescript-eslint/strict-void-return
 	socket.on('message', async (rawMessage) => {
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion, @typescript-eslint/no-base-to-string
 		const {text, selections, title} = JSON.parse(String(rawMessage)) as {
 			text: string;
 			title: string;
@@ -141,7 +145,7 @@ async function onDocumentClose(closedDocument: vscode.TextDocument) {
 }
 
 async function onLocalSelection(event: vscode.TextEditorSelectionChangeEvent) {
-	const document = event.textEditor.document;
+	const {document} = event.textEditor;
 	const field = documents.get(document.uri.toString());
 	if (!field) {
 		return;
@@ -163,7 +167,7 @@ async function onLocalEdit(event: vscode.TextDocumentChangeEvent) {
 		return;
 	}
 
-	const document = event.document;
+	const {document} = event;
 	const field = documents.get(document.uri.toString());
 	if (!field) {
 		return;
