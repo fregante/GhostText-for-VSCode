@@ -1,11 +1,9 @@
 {
 	"extends": "@sindresorhus/tsconfig",
 	"compilerOptions": {
-		"module": "CommonJS",
 		"rootDir": "source",
 		"outDir": "distribution",
 		"sourceMap": true,
-		"esModuleInterop": true,
 		"noEmitOnError": false
 	},
 }
