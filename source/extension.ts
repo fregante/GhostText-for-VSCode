@@ -174,6 +174,32 @@ async function onLocalEdit(event: vscode.TextDocumentChangeEvent) {
 	field.socket.send(JSON.stringify({text: content, selections}));
 }
 
+// Saving an `untitled:` document replaces it with a `file:` one, which closes the connection
+// https://github.com/fregante/GhostText/issues/292
+function updateActiveEditorContext() {
+	const uriString = vscode.window.activeTextEditor?.document.uri.toString();
+	void vscode.commands.executeCommand(
+		'setContext',
+		'ghostText.activeEditorConnected',
+		uriString !== undefined && documents.has(uriString),
+	);
+}
+
+function onSaveCommand() {
+	vscode.window.setStatusBarMessage('👻 GhostText syncs live, nothing to save', 2000);
+}
+
+// Other saves (e.g. "Save" when closing the tab) still happen. After saving, VS Code empties the
+// `untitled:` document, so disconnect first or the browser field gets wiped.
+// The save itself targets a `file:` document at the same path, so match by path.
+function onWillSave(event: vscode.TextDocumentWillSaveEvent) {
+	for (const field of documents.values()) {
+		if (field.document.uri.path === event.document.uri.path) {
+			documents.delete(field.uri);
+		}
+	}
+}
+
 function registerListeners(subscriptions: Subscriptions) {
 	const setup = [null, subscriptions] as const;
 
@@ -184,7 +210,12 @@ function registerListeners(subscriptions: Subscriptions) {
 	vscode.workspace.onDidCloseTextDocument(onDocumentClose, ...setup);
 	vscode.window.onDidChangeTextEditorSelection(onLocalSelection, ...setup);
 	vscode.workspace.onDidChangeTextDocument(onLocalEdit, ...setup);
+	vscode.workspace.onWillSaveTextDocument(onWillSave, ...setup);
+	vscode.window.onDidChangeActiveTextEditor(updateActiveEditorContext, ...setup);
+	documents.onAdd(updateActiveEditorContext, ...setup);
+	documents.onRemove(updateActiveEditorContext, ...setup);
 	registerCommand('ghostText.disconnect', onDisconnectCommand, subscriptions);
+	registerCommand('ghostText.save', onSaveCommand, subscriptions);
 	registerCommand('ghostText.stopServer', stopServer, subscriptions);
 	registerCommand(
 		'ghostText.startServer',
