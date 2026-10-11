@@ -176,6 +176,9 @@ async function onLocalEdit(event: vscode.TextDocumentChangeEvent) {
 
 // Saving an `untitled:` document replaces it with a `file:` one, which closes the connection
 // https://github.com/fregante/GhostText/issues/292
+
+// Keep the `ghostText.activeEditorConnected` context key up to date, so the ⌘S/Ctrl+S keybinding
+// in package.json only applies to GhostText documents
 function updateActiveEditorContext() {
 	const uriString = vscode.window.activeTextEditor?.document.uri.toString();
 	void vscode.commands.executeCommand(
@@ -185,13 +188,15 @@ function updateActiveEditorContext() {
 	);
 }
 
+// ⌘S/Ctrl+S in a GhostText document runs this instead of saving: it only shows a status bar message
 function onSaveCommand() {
 	vscode.window.setStatusBarMessage('👻 GhostText syncs live, nothing to save', 2000);
 }
 
-// Other saves (e.g. "Save" when closing the tab) still happen. After saving, VS Code empties the
-// `untitled:` document, so disconnect first or the browser field gets wiped.
-// The save itself targets a `file:` document at the same path, so match by path.
+// Other saves (e.g. "Save" when closing the tab) still go through, so disconnect the document as
+// soon as its save starts. VS Code empties the `untitled:` document only after saving, so the empty
+// text never reaches the browser.
+// The save targets the new `file:` document, which has the same path, so match by path.
 function onWillSave(event: vscode.TextDocumentWillSaveEvent) {
 	for (const field of documents.values()) {
 		if (field.document.uri.path === event.document.uri.path) {
