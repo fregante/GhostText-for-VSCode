@@ -32,6 +32,10 @@
         "command": "ghostText.stopServer",
         "title": "GhostText: Stop server",
         "enablement": "ghostText.server"
+      },
+      {
+        "command": "ghostText.save",
+        "title": "GhostText: Save (does nothing)"
       }
     ],
     "configuration": {
@@ -48,7 +52,23 @@
           "description": "The default filetype used when opening a new editor. You can use md for markdown, js for javascript, etc. It's advised to leave it empty so VS Code will guess the type automatically."
         }
       }
-    }
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "ghostText.save",
+          "when": "false"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "ghostText.save",
+        "key": "ctrl+s",
+        "mac": "cmd+s",
+        "when": "ghostText.activeEditorConnected"
+      }
+    ]
   },
   "activationEvents": [
     "onStartupFinished"

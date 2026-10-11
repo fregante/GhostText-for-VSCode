@@ -174,6 +174,37 @@ async function onLocalEdit(event: vscode.TextDocumentChangeEvent) {
 	field.socket.send(JSON.stringify({text: content, selections}));
 }
 
+// Saving an `untitled:` document replaces it with a `file:` one, which closes the connection
+// https://github.com/fregante/GhostText/issues/292
+
+// Keep the `ghostText.activeEditorConnected` context key up to date, so the ⌘S/Ctrl+S keybinding
+// in package.json only applies to GhostText documents
+function updateActiveEditorContext() {
+	const uriString = vscode.window.activeTextEditor?.document.uri.toString();
+	void vscode.commands.executeCommand(
+		'setContext',
+		'ghostText.activeEditorConnected',
+		uriString !== undefined && documents.has(uriString),
+	);
+}
+
+// ⌘S/Ctrl+S in a GhostText document runs this instead of saving: it only shows a status bar message
+function onSaveCommand() {
+	vscode.window.setStatusBarMessage('👻 GhostText syncs live, nothing to save', 2000);
+}
+
+// Other saves (e.g. "Save" when closing the tab) still go through, so disconnect the document as
+// soon as its save starts. VS Code empties the `untitled:` document only after saving, so the empty
+// text never reaches the browser.
+// The save targets the new `file:` document, which has the same path, so match by path.
+function onWillSave(event: vscode.TextDocumentWillSaveEvent) {
+	for (const field of documents.values()) {
+		if (field.document.uri.path === event.document.uri.path) {
+			documents.delete(field.uri);
+		}
+	}
+}
+
 function registerListeners(subscriptions: Subscriptions) {
 	const setup = [null, subscriptions] as const;
 
@@ -184,7 +215,12 @@ function registerListeners(subscriptions: Subscriptions) {
 	vscode.workspace.onDidCloseTextDocument(onDocumentClose, ...setup);
 	vscode.window.onDidChangeTextEditorSelection(onLocalSelection, ...setup);
 	vscode.workspace.onDidChangeTextDocument(onLocalEdit, ...setup);
+	vscode.workspace.onWillSaveTextDocument(onWillSave, ...setup);
+	vscode.window.onDidChangeActiveTextEditor(updateActiveEditorContext, ...setup);
+	documents.onAdd(updateActiveEditorContext, ...setup);
+	documents.onRemove(updateActiveEditorContext, ...setup);
 	registerCommand('ghostText.disconnect', onDisconnectCommand, subscriptions);
+	registerCommand('ghostText.save', onSaveCommand, subscriptions);
 	registerCommand('ghostText.stopServer', stopServer, subscriptions);
 	registerCommand(
 		'ghostText.startServer',
